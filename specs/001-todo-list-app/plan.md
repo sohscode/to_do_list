@@ -49,8 +49,15 @@ test/
 └── widget_test.dart      # Primary task-flow and persistence tests
 ```
 
-**Structure Decision**: Keep this a single Flutter project using its existing `lib/` and `test/` directories. The current `lib/main.dart` is empty and `test/widget_test.dart` is the generated counter smoke test; the feature will replace those starter contents rather than introduce modules or additional architectural layers.
+**Structure Decision**: Keep this a single Flutter project using its existing `lib/` and `test/` directories. The feature is implemented in `lib/main.dart` and tested in `test/widget_test.dart`, with no additional modules or architectural layers.
 
 ## Complexity Tracking
 
 No constitution violations.
+
+## Save Reliability Update
+
+- Overlapping saves are handled by a small `SaveRequestTracker` in `lib/main.dart`. It numbers each save request, and only the most recent request may set or clear the save-error indicator.
+- The in-memory task list stays the source of truth and is never rolled back by a save result.
+- Verified by a deterministic widget test (`test/widget_test.dart`) that controls the completion order of two saves with completers.
+- SOLID principles are applied within the existing design: the save-result rule has one responsibility, `TaskStorage` remains a small replaceable dependency injected through `MyApp`, and tests substitute storage through subclasses. No new layers, repositories, or state-management packages are added, per the constitution.

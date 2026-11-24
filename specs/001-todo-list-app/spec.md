@@ -46,6 +46,7 @@ The user marks a task complete or incomplete, or deletes it.
 - An empty list is shown when the user has not added any tasks.
 - A title made up only of whitespace is treated as empty and rejected.
 - Completion state changes apply only to the selected task.
+- When two saves overlap, only the most recent save's result decides whether the save error is shown. An older save finishing later cannot clear a newer failure, and a newer successful save clears the error.
 
 ## Requirements *(mandatory)*
 

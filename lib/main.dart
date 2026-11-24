@@ -27,10 +27,10 @@ class Task {
   }
 
   Map<String, Object> toJson() => {
-        'id': id,
-        'title': title,
-        'isCompleted': isCompleted,
-      };
+    'id': id,
+    'title': title,
+    'isCompleted': isCompleted,
+  };
 
   factory Task.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
@@ -70,12 +70,26 @@ class TaskStorage {
 
   Future<void> saveTasks(List<Task> tasks) async {
     final preferences = await SharedPreferences.getInstance();
-    final encodedTasks = jsonEncode(tasks.map((task) => task.toJson()).toList());
+    final encodedTasks = jsonEncode(
+      tasks.map((task) => task.toJson()).toList(),
+    );
     final saved = await preferences.setString(_tasksKey, encodedTasks);
     if (!saved) {
       throw StateError('Task preferences could not be saved.');
     }
   }
+}
+
+/// Hands out a number for each save request and answers whether a request is
+/// still the most recent one. Only the most recent request's outcome may
+/// change the save-error indicator, so an older save finishing late cannot
+/// hide a newer failure.
+class SaveRequestTracker {
+  int _latestRequest = 0;
+
+  int startRequest() => ++_latestRequest;
+
+  bool isLatest(int request) => request == _latestRequest;
 }
 
 class MyApp extends StatelessWidget {
@@ -108,6 +122,7 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
   final _titleController = TextEditingController();
   final _tasks = <Task>[];
+  final _saveRequests = SaveRequestTracker();
   var _isLoaded = false;
   var _loadFailed = false;
   var _saveFailed = false;
@@ -140,12 +155,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   Future<void> _saveTasks() async {
+    final request = _saveRequests.startRequest();
     try {
       await widget.storage.saveTasks(List.unmodifiable(_tasks));
-      if (!mounted) return;
+      if (!mounted || !_saveRequests.isLatest(request)) return;
       setState(() => _saveFailed = false);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || !_saveRequests.isLatest(request)) return;
       setState(() => _saveFailed = true);
     }
   }
@@ -202,79 +218,75 @@ class _TaskListScreenState extends State<TaskListScreen> {
           child: _loadFailed
               ? const Center(child: Text('Failed to load tasks.'))
               : !_isLoaded
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          controller: _titleController,
-                          decoration: InputDecoration(
-                            labelText: 'Task title',
-                            errorText: _inputError,
-                          ),
-                          onSubmitted: (_) => _addTask(),
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton.icon(
-                            onPressed: _addTask,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add'),
-                          ),
-                        ),
-                        if (_saveFailed)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: Text(
-                              'Failed to save tasks.',
-                              key: ValueKey('save-error'),
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: _tasks.isEmpty
-                              ? const Center(child: Text('No tasks yet.'))
-                              : ListView.builder(
-                                  itemCount: _tasks.length,
-                                  itemBuilder: (context, index) {
-                                    final task = _tasks[index];
-                                    return ListTile(
-                                      key: ValueKey('task-${task.id}'),
-                                      leading: Checkbox(
-                                        key: ValueKey(
-                                          'task-toggle-${task.id}',
-                                        ),
-                                        value: task.isCompleted,
-                                        onChanged: (value) {
-                                          if (value != null) {
-                                            _toggleTask(task.id, value);
-                                          }
-                                        },
-                                      ),
-                                      title: Text(
-                                        task.title,
-                                        style: TextStyle(
-                                          decoration: task.isCompleted
-                                              ? TextDecoration.lineThrough
-                                              : TextDecoration.none,
-                                        ),
-                                      ),
-                                      trailing: IconButton(
-                                        key: ValueKey(
-                                          'task-delete-${task.id}',
-                                        ),
-                                        tooltip: 'Delete ${task.title}',
-                                        onPressed: () => _deleteTask(task.id),
-                                        icon: const Icon(Icons.delete_outline),
-                                      ),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Task title',
+                        errorText: _inputError,
+                      ),
+                      onSubmitted: (_) => _addTask(),
                     ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        onPressed: _addTask,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                      ),
+                    ),
+                    if (_saveFailed)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Failed to save tasks.',
+                          key: ValueKey('save-error'),
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _tasks.isEmpty
+                          ? const Center(child: Text('No tasks yet.'))
+                          : ListView.builder(
+                              itemCount: _tasks.length,
+                              itemBuilder: (context, index) {
+                                final task = _tasks[index];
+                                return ListTile(
+                                  key: ValueKey('task-${task.id}'),
+                                  leading: Checkbox(
+                                    key: ValueKey('task-toggle-${task.id}'),
+                                    value: task.isCompleted,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        _toggleTask(task.id, value);
+                                      }
+                                    },
+                                  ),
+                                  title: Text(
+                                    task.title,
+                                    style: TextStyle(
+                                      decoration: task.isCompleted
+                                          ? TextDecoration.lineThrough
+                                          : TextDecoration.none,
+                                    ),
+                                  ),
+                                  trailing: IconButton(
+                                    key: ValueKey('task-delete-${task.id}'),
+                                    tooltip: 'Delete ${task.title}',
+                                    onPressed: () => _deleteTask(task.id),
+                                    icon: const Icon(Icons.delete_outline),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

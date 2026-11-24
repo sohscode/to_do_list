@@ -79,6 +79,16 @@ description: "Implementation tasks for the Simple To-Do List Application"
 
 ---
 
+## Phase 6: Save Reliability (Review Follow-up)
+
+**Purpose**: Ensure an older save result cannot hide a newer save failure, and document the workflow.
+
+- [X] T008 [US2] Add a deterministic widget regression test in `test/widget_test.dart` that controls completion order of two overlapping saves: newer fails, older succeeds, error stays visible, then a later successful save clears it while all tasks remain visible.
+- [X] T009 [US2] Fix overlapping save result handling in `lib/main.dart` with `SaveRequestTracker`, so only the most recent save request updates the save-error indicator.
+- [X] T010 Add `README.md` (setup, run, test, format, Spec Kit feature selection), run `dart format`, `flutter pub get`, `flutter analyze`, and `flutter test`, and record actual results in `README.md`. Verify persistence on a device or emulator if available.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
