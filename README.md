@@ -49,14 +49,14 @@ The widget tests cover:
 
 ### Last recorded results
 
-Fill this in from your own run before submitting:
+Recorded on macOS with Flutter, run from the project root:
 
 | Command | Result |
 | --- | --- |
-| `flutter pub get` | _(paste result)_ |
-| `flutter analyze` | _(paste result)_ |
-| `flutter test test/widget_test.dart` | _(paste result)_ |
-| Persistence after closing and reopening (device/emulator) | _(paste result)_ |
+| `flutter pub get` | Got dependencies! |
+| `flutter analyze` | No issues found! |
+| `flutter test test/widget_test.dart` | All tests passed! (5 tests) |
+| Persistence after closing and reopening (iPhone 16 Pro Max simulator) | Passed: a completed task stayed completed and a deleted task stayed deleted after a full app restart |
 
 ## Save behavior
 
